@@ -1,0 +1,574 @@
+---
+title: "Mehak's Dahsboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    source_code: embed
+    theme:
+      version: 5
+      bootswatch: sketchy
+runtime: shiny
+---
+```{r, include=FALSE, fig.align='right', message=FALSE, echo=FALSE, out.width=100}
+library(flexdashboard)
+library(ggplot2)
+bslib::bs_themer()
+thematic::thematic_rmd(
+  font = "auto",
+  # To get the dark bg on the geom_raster()
+  sequential = thematic::sequential_gradient(fg_low = FALSE, fg_weight = 0, bg_weight = 1)
+)
+theme_set(theme_bw(base_size = 10))
+```
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(dplyr)
+library(ggplot2)
+library(DT)
+library(flexdashboard)
+library(tidyverse)
+library(highcharter)
+library(gt)
+library(htmltools)
+library(viridis)
+```
+
+```{r}
+data <- read.csv("D:\\OneDrive - Lovely Professional University\\Desktop\\Documents\\MBA  LPU\\Assignments\\Module 5\\R\\CA2\\StartupExpansion.csv")
+```
+
+Data Visualization
+=====================================
+
+
+Value Boxes {data-width=150}
+-------------------------------------
+
+### Total Stores
+
+```{r}
+valueBox(length(data$State),
+         caption = "stores",
+         icon = "fa-user",
+         color = "primary")
+```
+
+### Total States
+
+```{r}
+valueBox(length(unique(data$State)), caption = "States", color = "info", icon = "fa-map")
+```
+
+### New Expansions
+
+```{r}
+valueBox(sum(data$New.Expansion=='New'), caption = "New expansions", color = "success", icon = "fa-expand")
+```
+
+### Old Expansions
+
+```{r}
+valueBox(sum(data$New.Expansion=='Old'), caption = "Old expansions", color = "danger", icon = "fa-circle-exclamation")
+```
+
+
+Column {.tabset .tabset-fade data-width=450}
+-----------------------------------------------------------------------
+
+### Top States
+
+```{r}
+data %>%
+  group_by(State) %>%
+  summarise(Revenue = sum(Revenue)) %>%
+  arrange(desc(Revenue)) %>%
+  head(10) %>%
+  hchart('column',
+         hcaes(x = State, y = Revenue,color = viridis(10))) %>%
+  hc_add_theme(hc_theme_google()) %>%
+  hc_tooltip(pointFormat = '<b>Revenue: </b> {point.y} <br>') %>%
+  hc_title(text = 'Top 10 States', style = list(fontSize = '25px', fontWeight = 'bold')) %>%
+  hc_subtitle(text = 'By Revenue Amount', style = list(fontSize = '16px')) %>%
+  hc_credits(enabled = TRUE, text = 'mehakgupta2604')
+```
+
+### Top Cities
+
+```{r}
+data %>%
+  group_by(City) %>%
+  summarise(Revenue = sum(Revenue)) %>%
+  arrange(desc(Revenue)) %>%
+  head(15) %>%
+  hchart('bar',
+         hcaes(x = City, y = Revenue,color = viridis(15))) %>%
+  hc_add_theme(hc_theme_google()) %>%
+  hc_tooltip(pointFormat = '<b>Revenue: </b> {point.y} <br>') %>%
+  hc_title(text = 'Top 15 Cities', style = list(fontSize = '25px', fontWeight = 'bold')) %>%
+  hc_subtitle(text = 'By Revenue Amount', style = list(fontSize = '16px')) %>%
+  hc_credits(enabled = TRUE, text = 'mehakgupta2604')
+```
+
+### Bottom States
+
+```{r}
+data %>%
+  group_by(State) %>%
+  summarise(Mkt = sum(Marketing.Spend)) %>%
+  arrange(desc((Mkt))) %>%
+  tail(10) %>%
+  hchart('line',
+         hcaes(x = State, y = Mkt,color = magma(10))) %>%
+  hc_add_theme(hc_theme_google()) %>%
+  hc_tooltip(pointFormat = '<b>Marketing Spend: </b> {point.y} <br>') %>%
+  hc_title(text = 'Bottom 10 States', style = list(fontSize = '25px', fontWeight = 'bold')) %>%
+  hc_subtitle(text = 'By Marketing Spend', style = list(fontSize = '16px')) %>%
+  hc_credits(enabled = TRUE, text = 'mehakgupta2604')
+```
+
+### Bottom Cities
+
+```{r}
+data %>%
+  group_by(City) %>%
+  summarise(Mkt = sum(Marketing.Spend)) %>%
+  arrange(desc((Mkt))) %>%
+  tail(15) %>%
+  hchart('line',
+         hcaes(x = City, y = Mkt, color = inferno(15))) %>%
+  hc_add_theme(hc_theme_google()) %>%
+  hc_tooltip(pointFormat = '<b>Marketing Spend: </b> {point.y} <br>') %>%
+  hc_title(text = 'Bottom 15 Cities', style = list(fontSize = '25px', fontWeight = 'bold')) %>%
+  hc_subtitle(text = 'By Marketing Spend', style = list(fontSize = '16px')) %>%
+  hc_credits(enabled = TRUE, text = 'mehakgupta2604')
+```
+
+### Expansions in States
+
+```{r}
+
+# Filter the data to include only "New" expansions
+new_expansions_data <- data %>%
+  filter(New.Expansion == "New")
+
+# Calculate the count of "New" expansions per state
+new_expansion_counts <- new_expansions_data %>%
+  group_by(State) %>%
+  summarise(Count = n())
+
+# Create a bar chart for "New" expansions
+new_expansion_counts %>%
+  hchart('bar', hcaes(x = State, y = Count, color=turbo(6))) %>%
+  hc_add_theme(hc_theme_google()) %>%
+  hc_tooltip(pointFormat = '<b>New Expansions:</b> {point.y} <br>') %>%
+  hc_title(text = 'New Expansions', style = list(fontSize = '25px', fontWeight = 'bold')) %>%
+  hc_subtitle(text = 'By States', style = list(fontSize = '16px')) %>%
+  hc_credits(enabled = TRUE, text = 'mehakgupta2604')
+```
+
+
+Gauges {data-width=100}
+-------------------------------------
+
+### **Marketing Spend**
+
+```{r}
+
+# Define a slider input for the maximum limit
+sliderInput("max_limit", "Maximum Limit:", min = 0, max = 8000, value = 4000, width='150px')
+
+# Create a reactive gauge that updates based on the input$max_limit
+reactive_gauge <- reactive({
+  gauge(round(mean(data$Marketing.Spend), digits = 2),
+        min = 0,
+        max = input$max_limit,  # Use input$max_limit as the maximum limit
+        gaugeSectors(success = c(0, 2000),
+                     warning = c(2000, 4000),
+                     danger = c(4000, 8000),
+                     colors = c("#98FB98", "#FFD700", "#FF6B6B")))
+})
+
+# Render the reactive gauge
+renderUI({
+  reactive_gauge()
+})
+
+```
+
+### **New Expansion Rate**
+
+```{r}
+exp_rate <- (sum(data$New.Expansion =="New")/length(data$Store.ID))*100
+
+# Display the success rate in a gauge
+renderGauge({
+  gauge(
+    exp_rate, min = 0, max = 100, symbol = '%', 
+    sectors = gaugeSectors(
+      danger = c(0, 20),
+      warning = c(20, 80),
+      success = c(80, 100)
+    )
+  )  
+})
+```
+
+### **Old Expansion Rate**
+
+```{r}
+old_exp_rate <- (sum(data$New.Expansion =="Old")/length(data$Store.ID))*100
+
+# Display the danger rate in a gauge
+renderGauge({
+  gauge(
+    old_exp_rate, min = 0, max = 100, symbol = '%', 
+    sectors = gaugeSectors(
+      success = c(0, 20),
+      warning = c(20, 80),
+      danger = c(80, 100)
+    )
+  )  
+})
+```
+
+Column {data-width=250 .float-right}
+-----------------------------------------------------------------------
+
+### Stores by Region
+
+```{r}
+data %>%
+  group_by(Sales.Region) %>%
+  summarise(count = n()) %>%
+  hchart('pie', hcaes(x = Sales.Region, y=count, color=c('#D7A9E3','#FFC0CB'))) %>%
+  hc_add_theme(hc_theme_google()) %>%
+  hc_tooltip(pointFormat='<b>Proportion: </b> {point.percentage:,.2f}%') %>%
+  hc_title(text="Number of stores in each region",
+           style = list(fontSize='15px',fontWeight = 'bold')) %>%
+  hc_credits(enabled=TRUE, text = 'mehakgupta2604')
+
+```
+
+### Spend Vs Revenue
+
+```{r}
+data %>%
+  hchart("scatter", hcaes(x = Marketing.Spend, y = Revenue)) %>%
+  hc_add_theme(hc_theme_google()) %>%
+  hc_tooltip(pointFormat = "<b>Marketing Spend:</b> {point.x} <br><b>Revenue:</b> {point.y}") %>%
+  hc_title(text = "Scatter Plot",
+           style = list(fontSize = '15px', fontWeight = 'bold')) %>%
+  hc_subtitle(text = "Relationship between Marketing Spend and Revenue",
+               style = list(fontSize = '12px')) %>%
+  hc_xAxis(title = list(text = "Marketing Spend")) %>%
+  hc_yAxis(title = list(text = "Revenue")) %>%
+  hc_credits(enabled = TRUE, text = 'mehakgupta2604')
+```
+
+Filters
+========================================
+
+```{r}
+library(shiny)
+library(plotly)
+library(shinydashboard)
+
+# Define the UI
+ui <- dashboardPage(
+  dashboardHeader(title = "Visualizations with Filters"),
+  dashboardSidebar(
+    selectInput("variable", "Select Variable:",
+                choices = c("Revenue", "Marketing.Spend", "Number of Stores")),
+    selectInput("category", "Select Category:",
+                choices = c("Sales.Region", "State", "City")),
+    selectInput("display_option", "Display Option:",
+                choices = c("Top", "Middle", "Bottom", "All"), selected = "Top"),
+    conditionalPanel(
+      condition = "input.display_option != 'All'",
+      sliderInput("frequency_slider", "Select Frequency:",
+                  min = 5, max = 25, value = 10)
+    ),
+    actionButton("update", "Update Plot")
+  ),
+  dashboardBody(
+    fluidRow(
+      box(
+        title = "Pie Chart",
+        status = "primary",
+        plotlyOutput("pie_chart")
+      ),
+      box(
+        title = "Bar Chart",
+        status = "primary",
+        plotlyOutput("bar_chart")
+      )
+    )
+  )
+)
+
+# Define the server
+server <- function(input, output, session) {
+  
+  filtered_data <- reactive({
+    data
+  })
+  
+  output$pie_chart <- renderPlotly({
+    variable <- input$variable
+    category <- input$category
+    display_option <- input$display_option
+    frequency <- input$frequency_slider
+    
+    if (variable == "Revenue" || variable == "Marketing.Spend") {
+      pie_data <- filtered_data() %>%
+        group_by(.data[[category]]) %>%
+        summarise(total = sum(get(variable))) %>%
+        arrange(desc(total))
+      
+      if (display_option != "All") {
+        pie_data <- head(pie_data, frequency)
+      }
+      
+      title_text <- paste("Percentage of", variable, "in Each", category)
+    } else if (variable == "Number of Stores") {
+      store_data <- filtered_data() %>%
+        group_by(.data[[category]]) %>%
+        summarise(total = n_distinct(Store.ID)) %>%
+        arrange(desc(total))
+      
+      if (display_option != "All") {
+        store_data <- head(store_data, frequency)
+      }
+      
+      title_text <- paste("Number of Stores in Each", category)
+    }
+    
+    pie_chart <- plot_ly(pie_data, labels = ~.data[[category]], values = ~total, type = 'pie', textinfo = 'percent+label') %>%
+      layout(title = title_text)
+    
+    pie_chart
+  })
+  
+  output$bar_chart <- renderPlotly({
+    variable <- input$variable
+    category <- input$category
+    display_option <- input$display_option
+    frequency <- input$frequency_slider
+    
+    if (variable == "Revenue" || variable == "Marketing.Spend") {
+      bar_data <- filtered_data() %>%
+        group_by(.data[[category]]) %>%
+        summarise(total = sum(get(variable))) %>%
+        arrange(desc(total))
+    } else if (variable == "Number of Stores") {
+      bar_data <- filtered_data() %>%
+        group_by(.data[[category]]) %>%
+        summarise(total = n_distinct(Store.ID)) %>%
+        arrange(desc(total))
+    }
+    
+    if (display_option != "All") {
+      if (display_option == "Top") {
+        bar_data <- head(bar_data, frequency)
+      } else if (display_option == "Middle") {
+        middle_index <- ceiling(nrow(bar_data) / 2)
+        bar_data <- bar_data[(middle_index - (frequency/2)):(middle_index + (frequency/2) - 1), ]
+      } else if (display_option == "Bottom") {
+        bar_data <- tail(bar_data, frequency)
+      }
+    }
+    
+    x_label <- category
+    y_label <- variable
+    
+    bar_chart <- plot_ly(bar_data, x = ~.data[[category]], y = ~total, type = 'bar', marker = list(color = viridis(frequency))) %>%
+      layout(title = paste(display_option, frequency, category, "by", variable), xaxis = list(title = x_label), yaxis = list(title = y_label))
+    
+    bar_chart
+  })
+}
+
+# Run the Shiny app
+shinyApp(ui, server)
+
+
+```
+
+Map
+========================================
+
+### Map
+```{r}
+library(dplyr)
+
+mapdata <- data %>%
+  group_by(State) %>%
+  summarize(
+    Revenue = sum(Revenue),
+    `Marketing Spend` = sum(`Marketing.Spend`),
+    `Number of Stores` = n(),
+    `Old Expansions` = sum(case_when(
+      New.Expansion == "Old" ~ 1,
+      TRUE ~ 0
+    )),
+    `New Expansions` = sum(case_when(
+      New.Expansion == "New" ~ 1,
+      TRUE ~ 0
+    ))
+  )
+```
+
+
+```{r}
+library(shiny)
+library(highcharter)
+library(dplyr)
+
+# Define custom colors
+pastel_pink <- "#B19CD9"
+white <- "#FFC0CB"
+
+# UI
+ui <- fluidPage(
+  selectInput("data_type", "Select Data Type:", 
+              choices = c("Revenue" = "Revenue", "Marketing Spend" = "Marketing Spend", "Number of Stores" = "Number of Stores", "Expansions" = "Expansions")),
+  
+  conditionalPanel(
+    condition = "input.data_type == 'Expansions'",
+    selectInput("expansion_type", "Select Expansion Type:", 
+                choices = c("Old" = "Old", "New" = "New"),
+                selected = "Old")
+  ),
+  
+  highchartOutput("map")
+)
+
+# Server
+server <- function(input, output) {
+  # Reactive function to filter data based on user's selection
+  filtered_data <- reactive({
+    if (input$data_type == "Revenue") {
+      return(mapdata %>% select(State, Revenue))
+    } else if (input$data_type == "Marketing Spend") {
+      return(mapdata %>% select(State, 'Marketing Spend'))
+    } else if (input$data_type == "Number of Stores") {
+      return(mapdata %>% select(State, 'Number of Stores'))
+    } else if (input$data_type == "Expansions") {
+      if (input$expansion_type == "Old") {
+        return(mapdata %>% select(State, `Old Expansions`))
+      } else if (input$expansion_type == "New") {
+        return(mapdata %>% select(State, `New Expansions`))
+      }
+    }
+  })
+  
+  output$map <- renderHighchart({
+    filtered_data <- filtered_data()
+    
+    # Update the title based on the selected expansion type
+    map_title <- if (input$data_type == "Expansions") {
+      paste(input$expansion_type, "Expansions by State")
+    } else {
+      paste(input$data_type, "by State")
+    }
+    
+    # Aggregate data by State to calculate sum of selected variable
+    aggregated_data <- filtered_data %>%
+      group_by(State) %>%
+      summarize(Value = sum(.data[[colnames(filtered_data)[2]]]))
+    
+    # Create the map based on the aggregated data
+    highchart() %>%
+      hc_add_series_map(usgeojson, aggregated_data,
+                        name = "State",
+                        value = "Value",
+                        joinBy = c("name", "State")) %>%
+      hc_title(text = map_title) %>%
+      hc_colorAxis(
+        minColor = white,
+        maxColor = pastel_pink
+      ) %>%
+      hc_mapNavigation(enabled = TRUE) %>%
+      hc_legend(enabled = TRUE) %>%
+      hc_tooltip(pointFormat = "State: {point.State}<br>Value: {point.value:,.0f}")
+  })
+}
+
+shinyApp(ui, server)
+
+
+```
+
+Data Table
+========================================
+
+```{r}
+datatable(data,
+          caption = "Expansion Data",
+          rownames = T,
+          filter = "top",
+          options = list(pageLength = 25))
+```
+
+Pivot Table
+=========================================
+
+```{r}
+library(rpivotTable)
+rpivotTable(data,
+            aggregatorName = "Count",
+            cols= "Revenue",
+            rows = "State",
+            rendererName = "Heatmap")
+```
+
+Summary {data-orientation=columns} 
+===========================================
+
+## Column{data-width = 350}
+
+### 
+
+```{r}
+valueBox("Avg Marketing Spend",round(mean(data$Marketing.Spend),
+               digits = 2),
+         icon = shiny::icon("user"))
+```
+
+### 
+
+```{r}
+valueBox("Avg Revenue",round(mean(data$Revenue),
+               digits = 2),
+         icon = shiny::icon("chart-area"))
+```
+
+### 
+
+```{r}
+# Create a value box to display the total number of "New" expansions
+valueBox(
+  sum(data$New.Expansion=="New"),
+  "Total New Expansions",
+  icon = shiny::icon("expand"),
+  color = "green"
+)
+```
+
+## Column
+
+Report
+
+-   This is a report on `r length(data$Store.ID)` stores in US for expansion strategies.
+
+-   The average marketing spend was `r mean(data$Marketing.Spend)`.
+
+-   The average revenue was `r mean(data$Revenue)`.
+
+-   The total number of expansions was `r sum(data$New.Expansion=="New")`.
+
+This report was generated on `r format(Sys.Date(), format = "%B %d, %Y")`
+
